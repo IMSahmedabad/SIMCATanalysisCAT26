@@ -499,10 +499,24 @@ function attendance(el){
     <label>SIMCAT:</label>${simcatSelectHTML('attSC','renderAtt()')}
     <label>Group by:</label>${groupByHTML('attGroup','renderAtt()')}
     ${currentUser==='ADMIN'?`<label>Mentor:</label>${mentorHTML('attMentor','renderAtt()')}`:'' }
+    <button class="btn btn-accent" onclick="downloadAttendance()">⬇ Download image</button>
   </div>
-  <div id="attMetrics" class="metric-grid"></div>
-  <div class="card"><div id="attTable"></div></div>`;
+  <div id="attCapture">
+    <div id="attMetrics" class="metric-grid"></div>
+    <div class="card"><div id="attTable"></div></div>
+  </div>`;
   renderAtt();
+}
+
+function downloadAttendance(){
+  const el=document.getElementById('attCapture');
+  if(!el){alert('No attendance data to download.');return;}
+  const n=getSimcatNum('attSC');
+  html2canvas(el,{scale:2,backgroundColor:'#f8f8f7',useCORS:true}).then(canvas=>{
+    const a=document.createElement('a');
+    a.download=`Attendance_SIMCAT${n}_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}.png`;
+    a.href=canvas.toDataURL('image/png');a.click();
+  });
 }
 
 function renderAtt(){
