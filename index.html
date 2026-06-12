@@ -272,6 +272,7 @@ const ADMIN_NAV=[
   {id:'toppers',label:'Top performers',icon:'star'},
   {id:'pending',label:'Pending list',icon:'clock'},
   {id:'percentile',label:'Percentile dist.',icon:'pie'},
+  {id:'participation',label:'Participation target',icon:'target'},
 ];
 const MENTOR_NAV=[
   {s:'My Batches'},
@@ -281,6 +282,7 @@ const MENTOR_NAV=[
   {id:'toppers',label:'Top performers',icon:'star'},
   {id:'pending',label:'Pending list',icon:'clock'},
   {id:'percentile',label:'Percentile dist.',icon:'pie'},
+  {id:'participation',label:'Participation target',icon:'target'},
 ];
 const IC={
   sync:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>',
@@ -291,6 +293,7 @@ const IC={
   star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
   clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   pie:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>',
+  target:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
 };
 
 function buildApp(){
@@ -313,7 +316,7 @@ function showPage(id){
   const page=document.createElement('div');
   page.id='page-'+id;
   main.appendChild(page);
-  ({masterSync,simcatUpload,attendance,scores,trends,toppers,pending,percentile})[id]?.(page);
+  ({masterSync,simcatUpload,attendance,scores,trends,toppers,pending,percentile,participation})[id]?.(page);
 }
 
 // ── PAGE: MASTER SYNC ─────────────────────────────────────────────
@@ -692,7 +695,8 @@ function renderPending(){
   const bf=document.getElementById('pdBatch')?.value||'all';
   const mf=document.getElementById('pdMentor')?.value||currentUser;
   if(!n||!simcatData[n]){document.getElementById('pdContent').innerHTML='<div class="empty">No SIMCAT data.</div>';return;}
-  let students=eligibleForSimcat(n);
+  // Pending: ACTIVE students only
+  let students=eligibleForSimcat(n).filter(r=>(r.status||'').toLowerCase().trim()==='active');
   if(mf&&mf!=='all')students=students.filter(r=>getMentor(r)===mf);
   if(currentUser!=='ADMIN')students=students.filter(r=>getMentor(r)===currentUser);
   if(bf!=='all')students=students.filter(r=>getBatch(r)===bf);
@@ -700,25 +704,21 @@ function renderPending(){
   const pend=students.filter(r=>!hoMap[(r.ims_pin||'').toUpperCase().trim()]);
   const given=students.length-pend.length;
   document.getElementById('pdMetrics').innerHTML=`
-    <div class="metric brand"><div class="metric-label">Filtered eligible</div><div class="metric-val">${students.length}</div></div>
+    <div class="metric brand"><div class="metric-label">Active students</div><div class="metric-val">${students.length}</div></div>
     <div class="metric green"><div class="metric-label">Given</div><div class="metric-val">${given}</div></div>
     <div class="metric red"><div class="metric-label">Pending</div><div class="metric-val">${pend.length}</div></div>`;
-  if(!pend.length){document.getElementById('pdContent').innerHTML='<div class="empty">🎉 All students have written this SIMCAT!</div>';return;}
+  if(!pend.length){document.getElementById('pdContent').innerHTML='<div class="empty">All active students have written this SIMCAT!</div>';return;}
   const grouped={};
   pend.forEach(r=>{const b=getBatch(r);if(!grouped[b])grouped[b]=[];grouped[b].push(r);});
   let html=`<div id="pendingCard" style="background:var(--white);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--gray-200)">
     <div style="background:var(--brand);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:15px;font-weight:700">SIMCAT ${n} · Pending Students</span>
+      <span style="font-size:15px;font-weight:700">SIMCAT ${n} · Pending Active Students</span>
       <span style="font-size:12px;opacity:.75">${new Date().toLocaleDateString('en-IN')} · ${pend.length} students</span>
     </div>`;
   Object.entries(grouped).sort().forEach(([batch,list])=>{
     html+=`<div style="padding:7px 16px;background:var(--brand-light);font-size:12px;font-weight:600;color:var(--brand);border-bottom:1px solid var(--gray-200)">${batch} <span style="font-weight:400;color:var(--gray-400)">· ${getMentor(list[0])} · ${list.length} pending</span></div>
-    <table style="width:100%;border-collapse:collapse"><thead><tr style="background:var(--gray-50)">
-      <th style="text-align:left;padding:6px 16px;font-size:11px;color:var(--gray-400);font-weight:600">Name</th>
-      <th style="text-align:left;padding:6px 16px;font-size:11px;color:var(--gray-400);font-weight:600">IMS Pin</th>
-      <th style="text-align:left;padding:6px 16px;font-size:11px;color:var(--gray-400);font-weight:600">Mobile</th>
-    </tr></thead><tbody>`;
-    list.forEach((r,i)=>{html+=`<tr style="background:${i%2===0?'#fff':'var(--gray-50)'}"><td style="padding:5px 16px;font-size:13px">${r.name||'—'}</td><td style="padding:5px 16px;font-size:12px;color:var(--gray-400)">${r.ims_pin}</td><td style="padding:5px 16px;font-size:12px">${r.mobile||'—'}</td></tr>`;});
+    <table style="width:100%;border-collapse:collapse"><tbody>`;
+    list.forEach((r,i)=>{html+=`<tr style="background:${i%2===0?'#fff':'var(--gray-50)'}"><td style="padding:6px 16px;font-size:13px">${r.name||'—'}</td></tr>`;});
     html+='</tbody></table>';
   });
   html+='</div>';
@@ -775,6 +775,151 @@ function renderPct(){
   BANDS.forEach((b,i)=>{const c=counts[i];const p=records.length?Math.round(c/records.length*100):0;html+=`<tr><td><strong>${b.l}</strong></td><td>${c}</td><td>${p}%</td><td><div class="pct-bar" style="min-width:100px"><div class="pct-fill" style="width:${p}%;background:${bColors[i]}"></div></div></td></tr>`;});
   html+='</tbody></table></div>';
   document.getElementById('pctTable').innerHTML=html;
+}
+
+// ── PAGE: PARTICIPATION TARGET ────────────────────────────────────────────────
+const ANNUAL_TARGET = 17.5;
+const TOTAL_SIMCATS = 20;
+
+function participation(el){
+  el.innerHTML=`
+  <div class="page-title">Participation target</div>
+  <div class="page-sub">Average SIMCATs written per student per mentor vs annual target of ${ANNUAL_TARGET} / ${TOTAL_SIMCATS}.</div>
+  <div class="notice">Base: Active + Cancellation students per batch. Target: each student writes <strong>${ANNUAL_TARGET}</strong> out of ${TOTAL_SIMCATS} SIMCATs.</div>
+  ${currentUser==='ADMIN'?`<div class="controls-row"><label>Mentor:</label>${mentorHTML('partMentor','renderParticipation()')}</div>`:''}
+  <div id="partMetrics" class="metric-grid" style="margin-bottom:1rem"></div>
+  <div class="two-col">
+    <div class="card"><div class="card-title">Avg SIMCATs per student by mentor</div><div class="chart-wrap" style="height:280px"><canvas id="partChart" role="img" aria-label="Participation bar chart"></canvas></div></div>
+    <div class="card"><div class="card-title">Target tracker</div><div id="partGauge"></div></div>
+  </div>
+  <div class="card"><div id="partTable"></div></div>`;
+  renderParticipation();
+}
+
+function renderParticipation(){
+  const mf=currentUser==='ADMIN'?(document.getElementById('partMentor')?.value||'all'):currentUser;
+  const loaded=Object.keys(simcatData).map(Number).sort((a,b)=>a-b);
+  if(!loaded.length){
+    document.getElementById('partMetrics').innerHTML='';
+    document.getElementById('partTable').innerHTML='<div class="empty">Upload SIMCAT data to see participation.</div>';
+    return;
+  }
+
+  // For each mentor, for each batch: count eligible (active+cancellation) students
+  // and count how many times each student appears in uploaded SIMCATs
+  const mentors = mf==='all'
+    ? [...new Set(eligible().map(r=>getMentor(r)).filter(m=>m&&m!=='—'))].sort()
+    : [mf];
+
+  // Build per-student participation count across all loaded SIMCATs
+  const studentSimcatCount = {}; // ims_pin -> count of SIMCATs written
+  loaded.forEach(n=>{
+    const hoMap=buildHoMap(n);
+    // only count students in batches selected for this SIMCAT
+    eligibleForSimcat(n).forEach(r=>{
+      const pin=(r.ims_pin||'').toUpperCase().trim();
+      if(!pin)return;
+      if(hoMap[pin]){
+        studentSimcatCount[pin]=(studentSimcatCount[pin]||0)+1;
+      }
+    });
+  });
+
+  // Group by mentor
+  const mentorStats={};
+  mentors.forEach(m=>{
+    const students=eligible().filter(r=>getMentor(r)===m);
+    if(!students.length)return;
+    let totalWritten=0;
+    students.forEach(r=>{
+      const pin=(r.ims_pin||'').toUpperCase().trim();
+      totalWritten+=(studentSimcatCount[pin]||0);
+    });
+    const avgPerStudent=students.length?totalWritten/students.length:0;
+    // Project to full 20 SIMCATs based on loaded count
+    const projected=loaded.length?avgPerStudent*(TOTAL_SIMCATS/loaded.length):0;
+    mentorStats[m]={students:students.length,totalWritten,avgPerStudent,projected,batches:[...new Set(students.map(r=>getBatch(r)).filter(Boolean))].length};
+  });
+
+  const sorted=Object.entries(mentorStats).sort((a,b)=>b[1].avgPerStudent-a[1].avgPerStudent);
+  const overallStudents=eligible().filter(r=>mf==='all'||getMentor(r)===mf).length;
+  const overallWritten=eligible().filter(r=>mf==='all'||getMentor(r)===mf).reduce((sum,r)=>{
+    const pin=(r.ims_pin||'').toUpperCase().trim();
+    return sum+(studentSimcatCount[pin]||0);
+  },0);
+  const overallAvg=overallStudents?overallWritten/overallStudents:0;
+  const overallProjected=loaded.length?overallAvg*(TOTAL_SIMCATS/loaded.length):0;
+  const targetPct=Math.min(Math.round(overallProjected/ANNUAL_TARGET*100),150);
+  const onTrack=overallProjected>=ANNUAL_TARGET*0.9;
+
+  document.getElementById('partMetrics').innerHTML=`
+    <div class="metric brand"><div class="metric-label">SIMCATs loaded</div><div class="metric-val">${loaded.length}</div><div class="metric-sub">of ${TOTAL_SIMCATS} total</div></div>
+    <div class="metric"><div class="metric-label">Avg per student</div><div class="metric-val">${overallAvg.toFixed(1)}</div><div class="metric-sub">across ${loaded.length} SIMCATs</div></div>
+    <div class="metric ${onTrack?'green':'amber'}"><div class="metric-label">Projected (full year)</div><div class="metric-val">${overallProjected.toFixed(1)}</div><div class="metric-sub">target: ${ANNUAL_TARGET}</div></div>
+    <div class="metric ${onTrack?'green':'red'}"><div class="metric-label">On target</div><div class="metric-val">${onTrack?'Yes':'No'}</div><div class="metric-sub">${targetPct}% of target</div></div>`;
+
+  // Gauge / target bars
+  let gaugeHtml='<div style="padding:.5rem 0">';
+  sorted.forEach(([m,v])=>{
+    const pct=Math.min(v.projected/ANNUAL_TARGET*100,120);
+    const color=pct>=100?'var(--green)':pct>=80?'var(--amber)':'var(--red)';
+    gaugeHtml+=`<div style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="font-weight:500">${m}</span>
+        <span style="color:${color};font-weight:600">${v.projected.toFixed(1)} / ${ANNUAL_TARGET}</span>
+      </div>
+      <div style="height:8px;background:var(--gray-200);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(pct,100)}%;background:${color};border-radius:4px;transition:width .5s"></div>
+      </div>
+    </div>`;
+  });
+  // Target line marker
+  gaugeHtml+='<div style="font-size:11px;color:var(--gray-400);margin-top:4px">Bar shows projected annual participation vs ${ANNUAL_TARGET} target</div></div>';
+  document.getElementById('partGauge').innerHTML=gaugeHtml;
+
+  // Bar chart
+  const colors=['#1a3a5c','#1D9E75','#e07b39','#7F77DD','#D4537E','#378ADD','#BA7517','#D85A30'];
+  makeChart('partChart',{
+    type:'bar',
+    data:{
+      labels:sorted.map(([m])=>m),
+      datasets:[
+        {label:'Avg SIMCATs written',data:sorted.map(([,v])=>parseFloat(v.avgPerStudent.toFixed(2))),backgroundColor:sorted.map((_,i)=>colors[i%colors.length]),borderRadius:4},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        annotation:{annotations:{target:{type:'line',yMin:ANNUAL_TARGET/TOTAL_SIMCATS*loaded.length,yMax:ANNUAL_TARGET/TOTAL_SIMCATS*loaded.length,borderColor:'#c0392b',borderWidth:2,borderDash:[4,4]}}}
+      },
+      scales:{x:{ticks:{font:{size:11}}},y:{beginAtZero:true,title:{display:true,text:'Avg SIMCATs per student',font:{size:11}},ticks:{font:{size:11}}}}
+    }
+  });
+
+  // Table
+  const expectedSoFar=parseFloat((ANNUAL_TARGET/TOTAL_SIMCATS*loaded.length).toFixed(2));
+  let html=`<div class="notice" style="margin-bottom:.75rem">Expected avg so far (${loaded.length} of ${TOTAL_SIMCATS} SIMCATs done): <strong>${expectedSoFar}</strong> per student</div>
+  <div class="table-wrap"><table><thead><tr>
+    <th>#</th><th>Mentor</th><th>Batches</th><th>Students</th><th>Total writes</th><th>Avg so far</th><th>Expected so far</th><th>Projected (year)</th><th>Status</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(([m,v],i)=>{
+    const status=v.avgPerStudent>=expectedSoFar?'<span class="tag tag-g">On track</span>':'<span class="tag tag-r">Behind</span>';
+    const diff=v.avgPerStudent-expectedSoFar;
+    html+=`<tr>
+      <td>${i+1}</td>
+      <td><strong>${m}</strong></td>
+      <td>${v.batches}</td>
+      <td>${v.students}</td>
+      <td>${v.totalWritten}</td>
+      <td style="font-weight:600">${v.avgPerStudent.toFixed(2)}</td>
+      <td style="color:var(--gray-400)">${expectedSoFar}</td>
+      <td style="font-weight:600;color:${v.projected>=ANNUAL_TARGET?'var(--green)':'var(--red)'}">${v.projected.toFixed(1)}</td>
+      <td>${status} <span style="font-size:11px;color:var(--gray-400)">(${diff>=0?'+':''}${diff.toFixed(2)})</span></td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('partTable').innerHTML=html;
 }
 </script>
 </body>
