@@ -211,7 +211,10 @@ function save(){
 
 // ── HELPERS ───────────────────────────────────────────────────────
 const INC=['active','cancellation'];
-function eligible(){return masterData.filter(r=>INC.includes((r.status||'').toLowerCase().trim()));}
+// Batches excluded from all analytics
+const EXCLUDED_BATCH_PATTERNS=[/^CAT 26 E\d+$/i,/^CAT 27\b/i,/^CAT 2[7-9]\d\d/i];
+function isExcludedBatch(batch){return EXCLUDED_BATCH_PATTERNS.some(p=>p.test((batch||'').trim()));}
+function eligible(){return masterData.filter(r=>INC.includes((r.status||'').toLowerCase().trim())&&!isExcludedBatch(r.active_batch||r.enrolled_batch));}
 function getBatch(r){return(r.active_batch||r.enrolled_batch||'').trim();}
 function getMentor(r){return(r.mentor||'').trim()||'—';}
 function allBatches(){return[...new Set(eligible().map(r=>getBatch(r)).filter(Boolean))].sort();}
