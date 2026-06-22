@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMS CAT 26 · SIMCAT Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{--brand:#1a3a5c;--brand-light:#e8f0f8;--accent:#e07b39;--accent-light:#fdf0e8;--green:#2d8a5e;--green-light:#e6f5ee;--red:#c0392b;--red-light:#fdecea;--amber:#c97d10;--amber-light:#fdf3e0;--gray-50:#f8f8f7;--gray-100:#f0efed;--gray-200:#e0deda;--gray-400:#9e9c97;--gray-600:#5c5a56;--gray-800:#2c2c2a;--white:#ffffff;--radius:8px;--radius-lg:12px;--shadow:0 1px 3px rgba(0,0,0,0.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray-50);color:var(--gray-800);font-size:14px;line-height:1.5;margin:0;padding:0}
+html{height:100%}
+
+/* LOGIN */
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--brand)}
+.login-card{background:var(--white);border-radius:var(--radius-lg);padding:2.5rem 2rem;width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.18)}
+.login-logo{text-align:center;margin-bottom:1.5rem}
+.logo-mark{font-size:28px;font-weight:700;color:var(--brand);letter-spacing:-0.5px}
+.logo-sub{font-size:11px;color:var(--gray-400);margin-top:2px;letter-spacing:1px}
+.login-card h2{font-size:16px;font-weight:600;margin-bottom:1.25rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:12px;font-weight:500;color:var(--gray-600);margin-bottom:4px}
+.form-group input,.form-group select{width:100%;height:38px;border:1px solid var(--gray-200);border-radius:var(--radius);padding:0 10px;font-size:14px;color:var(--gray-800);background:var(--white);outline:none;transition:border-color .15s}
+.form-group input:focus,.form-group select:focus{border-color:var(--brand)}
+.btn-primary{width:100%;height:40px;background:var(--brand);color:var(--white);border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer}
+.btn-primary:hover{background:#1e4570}
+.login-error{color:var(--red);font-size:12px;margin-top:.5rem;display:none}
+
+/* APP */
+#app{display:none;min-height:100vh}
+.topbar{background:var(--brand);color:var(--white);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:52px;position:sticky;top:0;z-index:100}
+.topbar-brand{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.topbar-ctx{font-size:12px;opacity:.65;margin-left:10px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.user-pill{font-size:12px;background:rgba(255,255,255,.12);padding:4px 10px;border-radius:20px}
+.btn-logout{font-size:12px;background:transparent;border:1px solid rgba(255,255,255,.3);color:var(--white);padding:4px 10px;border-radius:var(--radius);cursor:pointer}
+.btn-logout:hover{background:rgba(255,255,255,.1)}
+.layout{display:flex;min-height:calc(100vh - 52px)}
+.sidebar{width:210px;background:var(--white);border-right:1px solid var(--gray-200);padding:1rem 0;flex-shrink:0}
+.sidebar-section{font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.8px;padding:.75rem 1rem .25rem}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 1rem;cursor:pointer;color:var(--gray-600);font-size:13px;border-left:2px solid transparent;transition:all .12s}
+.nav-item:hover{background:var(--gray-50);color:var(--gray-800)}
+.nav-item.active{background:var(--brand-light);color:var(--brand);border-left-color:var(--brand);font-weight:500}
+.nav-item svg{width:15px;height:15px;flex-shrink:0}
+.main{flex:1;padding:1.5rem;overflow-x:hidden;max-width:1100px}
+
+/* COMMON */
+.page-title{font-size:18px;font-weight:600;margin-bottom:.2rem}
+.page-sub{font-size:13px;color:var(--gray-400);margin-bottom:1.25rem}
+.card{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:1.25rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1rem}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1rem}
+.metric{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:.875rem 1rem;box-shadow:var(--shadow)}
+.metric-label{font-size:11px;color:var(--gray-400);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.metric-val{font-size:24px;font-weight:600;color:var(--gray-800);line-height:1}
+.metric-sub{font-size:11px;color:var(--gray-400);margin-top:4px}
+.metric.green .metric-val{color:var(--green)}
+.metric.red .metric-val{color:var(--red)}
+.metric.amber .metric-val{color:var(--amber)}
+.metric.brand .metric-val{color:var(--brand)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;font-size:11px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;border-bottom:1px solid var(--gray-200);background:var(--gray-50);white-space:nowrap}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--gray-100);color:var(--gray-800)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--gray-50)}
+.pct-bar{height:4px;border-radius:2px;background:var(--gray-200);overflow:hidden;margin-top:3px;min-width:50px}
+.pct-fill{height:100%;border-radius:2px;transition:width .3s}
+.pct-fill.g{background:var(--green)}.pct-fill.a{background:var(--amber)}.pct-fill.r{background:var(--red)}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700}
+.rank-1{background:#fef3c7;color:#92400e}.rank-2{background:var(--gray-100);color:var(--gray-600)}.rank-3{background:#fde8e1;color:#7c3a22}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500}
+.tag-g{background:var(--green-light);color:var(--green)}.tag-a{background:var(--amber-light);color:var(--amber)}.tag-r{background:var(--red-light);color:var(--red)}.tag-b{background:var(--brand-light);color:var(--brand)}
+.controls-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.controls-row label{font-size:12px;color:var(--gray-600);font-weight:500}
+.controls-row select{height:32px;padding:0 8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;color:var(--gray-800);background:var(--white);outline:none}
+.controls-row select:focus{border-color:var(--brand)}
+.btn{height:32px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--gray-200);background:var(--white);font-size:13px;cursor:pointer;color:var(--gray-800);display:inline-flex;align-items:center;gap:6px;transition:all .12s}
+.btn:hover{background:var(--gray-50);border-color:var(--gray-400)}
+.btn-accent{background:var(--accent);color:var(--white);border-color:var(--accent)}
+.btn-accent:hover{background:#c96e30}
+.btn-brand{background:var(--brand);color:var(--white);border-color:var(--brand)}
+.btn-brand:hover{background:#1e4570}
+.btn-green{background:var(--green);color:var(--white);border-color:var(--green)}
+.btn-green:hover{background:#236b4a}
+.notice{font-size:12px;color:var(--gray-600);background:var(--brand-light);border-radius:var(--radius);padding:8px 12px;margin-bottom:1rem;border-left:3px solid var(--brand)}
+.notice.warn{background:var(--amber-light);border-left-color:var(--amber);color:#7a4a00}
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--gray-600);padding:5px 12px;background:var(--gray-100);border-radius:20px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:var(--green)}.dot-warn{background:var(--amber)}.dot-err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.dot-loading{background:var(--amber);animation:pulse 1s infinite}
+.s-chip{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--gray-200);color:var(--gray-400);background:var(--gray-50)}
+.s-chip.loaded{border-color:var(--green);color:var(--green);background:var(--green-light)}
+.simcat-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:.5rem}
+
+/* BATCH SELECTOR */
+.batch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:5px;max-height:200px;overflow-y:auto;padding:.5rem;border:1px solid var(--gray-200);border-radius:var(--radius);background:var(--gray-50);margin-bottom:.75rem}
+.batch-check{display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:3px 6px;border-radius:4px}
+.batch-check:hover{background:var(--white)}
+.batch-check input{cursor:pointer;accent-color:var(--brand)}
+
+/* CHARTS */
+.chart-wrap{position:relative;width:100%}
+.legend-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:12px;color:var(--gray-600)}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-sq{width:10px;height:10px;border-radius:2px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--gray-400);font-size:13px}
+hr.sect{border:none;border-top:1px solid var(--gray-100);margin:1rem 0}
+
+/* SYNC BUTTON */
+.sync-box{border:2px dashed var(--gray-200);border-radius:var(--radius-lg);padding:2rem;text-align:center;transition:all .15s}
+.sync-box:hover{border-color:var(--brand);background:var(--brand-light)}
+.sync-box p{font-size:13px;color:var(--gray-400);margin-top:.5rem}
+.sync-progress{font-size:13px;color:var(--gray-600);padding:8px 0;display:none}
+
+/* API URL input */
+.api-input-row{display:flex;gap:8px;align-items:center;margin-bottom:1rem}
+.api-input-row input{flex:1;height:36px;border:1px solid var(--gray-200);border-radius:var(--radius);padding:0 10px;font-size:13px;color:var(--gray-800);outline:none;font-family:monospace}
+.api-input-row input:focus{border-color:var(--brand)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-mark">IMS</div>
+      <div class="logo-sub">GUJARAT · SIMCAT ANALYTICS · CAT 26</div>
+    </div>
+    <h2>Sign in</h2>
+    <div class="form-group">
+      <label>Role / ID</label>
+      <select id="loginRole">
+        <option value="">Select…</option>
+        <option value="ADMIN">Admin</option>
+        <option value="RL">RL</option>
+        <option value="AK">AK</option>
+        <option value="AB">AB</option>
+        <option value="RG">RG</option>
+        <option value="MA">MA</option>
+        <option value="MB">MB</option>
+        <option value="MS">MS</option>
+        <option value="GU">GU</option>
+        <option value="VT">VT</option>
+        <option value="JJ">JJ</option>
+        <option value="AA">AA</option>
+        <option value="SS">SS</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPwd" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginErr">Incorrect credentials.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div style="display:flex;align-items:center">
+      <div class="topbar-brand">IMS Gujarat</div>
+      <div class="topbar-ctx">SIMCAT Analytics · CAT 26</div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill" id="userPill">—</div>
+      <button class="btn-logout" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+  <div id="globalStatus" style="font-size:11px;color:#fff;text-align:center;padding:3px 1rem;transition:all .3s;background:transparent"></div>
+  <div class="layout">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="main" id="mainContent"></div>
+  </div>
+</div>
+
+<script>
+// ── AUTH ──────────────────────────────────────────────────────────
+const CREDS={ADMIN:'IMS@ADMIN26',RL:'IMS@RL26',AK:'IMS@AK26',AB:'IMS@AB26',RG:'IMS@RG26',MA:'IMS@MA26',MB:'IMS@MB26',MS:'IMS@MS26',GU:'IMS@GU26',VT:'IMS@VT26',JJ:'IMS@JJ26',AA:'IMS@AA26',SS:'IMS@SS26'};
+let currentUser=null;
+
+function doLogin(){
+  const role=document.getElementById('loginRole').value;
+  const pwd=document.getElementById('loginPwd').value;
+  if(!role){showErr('Please select a role.');return;}
+  if(CREDS[role]!==pwd){showErr('Incorrect password.');return;}
+  currentUser=role;
+  // Force hide login, show app
+  const ls=document.getElementById('loginScreen');
+  const ap=document.getElementById('app');
+  ls.style.cssText='display:none!important';
+  ap.style.cssText='display:block!important;min-height:100vh';
+  document.getElementById('userPill').textContent=role==='ADMIN'?'⚙ Admin':role;
+  buildApp();
+}
+function showErr(m){const e=document.getElementById('loginErr');e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',3000);}
+function doLogout(){currentUser=null;document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginPwd').value='';}
+
+// ── STATE ─────────────────────────────────────────────────────────
+// Detect if running inside Google Apps Script
+const IS_GAS = (typeof google !== 'undefined' && google.script && google.script.run);
+let masterData=[];
+let simcatData={};
+let batchLists={};
+let apiUrl=''; // Not used when served from Apps Script
+let masterMeta={};
+
+// No local storage needed - all data via google.script.run
+function save(){ }
+
+// ── API HELPERS (google.script.run — works on ALL devices, no CORS) ──
+function gsRun(fnName, arg){
+  return new Promise((resolve,reject)=>{
+    if(typeof google === 'undefined' || !google.script || !google.script.run){
+      reject(new Error('google.script.run not available - make sure app is served from Apps Script URL'));
+      return;
+    }
+    const runner = google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(function(e){ reject(e); });
+    if(arg !== null && arg !== undefined) runner[fnName](arg);
+    else runner[fnName]();
+  });
+}
+
+async function apiGet(params){
+  const action=params.action;
+  try{
+    if(action==='master')        return await gsRun('getMasterDataClient', null);
+    if(action==='getSimcat')     return await gsRun('getSimcatDataClient', parseInt(params.n));
+    if(action==='getSSB')        return await gsRun('getSSBDataClient', null);
+    if(action==='getBatchLists') return await gsRun('getBatchListsClient', null);
+  }catch(e){ console.error('apiGet error:',e.message||e); return null; }
+}
+
+async function apiPost(body){
+  const action=body.action;
+  try{
+    if(action==='saveSimcat')     return await gsRun('saveSimcatDataClient',    {n:body.n,rows:body.rows});
+    if(action==='deleteSimcat')   return await gsRun('deleteSimcatSheetClient', body.n);
+    if(action==='saveSSB')        return await gsRun('saveSSBDataClient',       {list:body.list,attend:body.attend});
+    if(action==='saveBatchLists') return await gsRun('saveBatchListsClient',    body.lists);
+  }catch(e){ console.error('apiPost',e); return null; }
+}
+
+// ── LOAD ALL DATA ON LOGIN ─────────────────────────────────────────
+async function loadAllData(){
+  console.log('loadAllData started');
+  setGlobalStatus('loading','Loading data…');
+  try{
+    // Master
+    const m=await apiGet({action:'master'});
+    if(m&&m.rows){masterData=m.rows;masterMeta={date:m.updated,count:m.count};}
+    // Batch lists
+    const bl=await apiGet({action:'getBatchLists'});
+    if(bl&&bl.lists) batchLists=bl.lists;
+    // SSB
+    const ssb=await apiGet({action:'getSSB'});
+    if(ssb&&ssb.list&&ssb.list.length){ssbList=ssb.list;ssbAttend=ssb.attend||{};}
+    // SIMCATs 1-20 — check which exist
+    const simcatPromises=Array.from({length:20},(_,i)=>apiGet({action:'getSimcat',n:i+1}));
+    const results=await Promise.all(simcatPromises);
+    results.forEach(r=>{ if(r&&r.rows&&r.rows.length) simcatData[r.n]=r.rows; });
+    setGlobalStatus('ok',`Data loaded · ${masterData.length} students · ${Object.keys(simcatData).length} SIMCATs`);
+    // Re-render current page
+    if(currentPage) showPage(currentPage);
+  }catch(e){
+    const msg = 'Error: '+(e.message||JSON.stringify(e));
+    console.error('loadAllData error:', msg);
+    setGlobalStatus('err', msg);
+    alert(msg); // temporary debug
+  }
+}
+
+function setGlobalStatus(state,msg){
+  let bar=document.getElementById('globalStatus');
+  if(!bar)return;
+  const colors={ok:'var(--green)',loading:'var(--amber)',err:'var(--red)'};
+  bar.style.background=colors[state]||'var(--gray-400)';
+  bar.textContent=msg;
+  if(state==='ok') setTimeout(()=>{bar.textContent='';bar.style.background='transparent';},4000);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+const INC=['active','cancellation'];
+// Batches excluded from all analytics
+const EXCLUDED_BATCH_PATTERNS=[/^CAT 26 E\d+$/i,/^CAT 27\b/i,/^CAT 2[7-9]\d\d/i];
+function isExcludedBatch(batch){return EXCLUDED_BATCH_PATTERNS.some(p=>p.test((batch||'').trim()));}
+function eligible(){return masterData.filter(r=>INC.includes((r.status||'').toLowerCase().trim())&&!isExcludedBatch(r.active_batch||r.enrolled_batch));}
+function getBatch(r){return(r.active_batch||r.enrolled_batch||'').trim();}
+function getMentor(r){return(r.mentor||'').trim()||'—';}
+function allBatches(){return[...new Set(eligible().map(r=>getBatch(r)).filter(Boolean))].sort();}
+function batchesForSimcat(n){return batchLists[n]||allBatches();}
+function eligibleForSimcat(n){const b=new Set(batchesForSimcat(n));return eligible().filter(r=>b.has(getBatch(r)));}
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
+function fmtN(v,d=1){return v===null||v===undefined?'—':Number(v).toFixed(d);}
+function pctClass(p){return p>=90?'g':p>=75?'a':'r';}
+function buildHoMap(n){
+  const m={};
+  (simcatData[n]||[]).forEach(r=>{m[(r.ims_pin||'').toUpperCase().trim()]=r;});
+  // Inject SSB attendance — find their IMS pins from masterData and mark as present
+  if(ssbAttend[n]){
+    Object.entries(ssbAttend[n]).forEach(([name,present])=>{
+      if(!present) return;
+      // Find student in masterData by name match
+      const student = masterData.find(r=>(r.name||'').replace(/\s+/g,' ').trim().toLowerCase()===name.replace(/\s+/g,' ').trim().toLowerCase());
+      if(student){
+        const pin=(student.ims_pin||'').toUpperCase().trim();
+        if(pin && !m[pin]){
+          // Add a synthetic record so they count as "given"
+          m[pin]={ims_pin:pin,name:student.name,total:null,varc:null,dilr:null,qa:null,percentile:null,ssb:true};
+        }
+      }
+    });
+  }
+  return m;
+}
+function getSimcatNum(id){return parseInt(document.getElementById(id)?.value)||0;}
+
+function groupStudents(students,groupBy,hoMap){
+  const g={};
+  students.forEach(r=>{
+    const key=groupBy==='mentor'?getMentor(r):getBatch(r);
+    if(!key)return;
+    if(!g[key])g[key]={total:0,given:0,pending:[],mentor:getMentor(r),batch:getBatch(r),varc:[],dilr:[],qa:[],tots:[],pcts:[]};
+    g[key].total++;
+    const ho=hoMap?hoMap[(r.ims_pin||'').toUpperCase().trim()]:null;
+    if(ho){g[key].given++;if(ho.varc!==null)g[key].varc.push(ho.varc);if(ho.dilr!==null)g[key].dilr.push(ho.dilr);if(ho.qa!==null)g[key].qa.push(ho.qa);if(ho.total!==null)g[key].tots.push(ho.total);if(ho.percentile!==null)g[key].pcts.push(ho.percentile);}
+    else g[key].pending.push(r);
+  });
+  return g;
+}
+
+function simcatSelectHTML(id,onChange){
+  const loaded=Object.keys(simcatData).map(Number).sort((a,b)=>a-b);
+  let h=`<select id="${id}" onchange="${onChange}">`;
+  if(!loaded.length)h+='<option value="">No SIMCATs loaded</option>';
+  else loaded.forEach(n=>{h+=`<option value="${n}">SIMCAT ${n}</option>`;});
+  return h+'</select>';
+}
+function mentorHTML(id,onChange,all=true){
+  const mentors=[...new Set(eligible().map(r=>getMentor(r)).filter(m=>m&&m!=='—'))].sort();
+  let h=`<select id="${id}" onchange="${onChange}">`;
+  if(all)h+='<option value="all">All mentors</option>';
+  mentors.forEach(m=>{h+=`<option value="${m}"${m===currentUser?' selected':''}>${m}</option>`;});
+  return h+'</select>';
+}
+function groupByHTML(id,onChange){return`<select id="${id}" onchange="${onChange}"><option value="batch">By batch</option><option value="mentor">By mentor</option></select>`;}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+const CR={};
+function makeChart(id,cfg){if(CR[id]){CR[id].destroy();delete CR[id];}const c=document.getElementById(id);if(!c)return;CR[id]=new Chart(c,cfg);}
+
+// ── NAV ───────────────────────────────────────────────────────────
+const ADMIN_NAV=[
+  {s:'Admin'},
+  {id:'masterSync',label:'Masterdata sync',icon:'sync'},
+  {id:'simcatUpload',label:'SIMCAT upload',icon:'upload'},
+  {s:'Analytics'},
+  {id:'attendance',label:'Attendance',icon:'check'},
+  {id:'scores',label:'Scores',icon:'bar'},
+  {id:'trends',label:'Trends',icon:'trend'},
+  {id:'toppers',label:'Top performers',icon:'star'},
+  {id:'pending',label:'Pending list',icon:'clock'},
+  {id:'percentile',label:'Percentile dist.',icon:'pie'},
+  {id:'participation',label:'Participation target',icon:'target'},
+  {id:'ssb',label:'SSBs',icon:'ssb'},
+];
+const MENTOR_NAV=[
+  {s:'My Batches'},
+  {id:'attendance',label:'Attendance',icon:'check'},
+  {id:'scores',label:'Scores',icon:'bar'},
+  {id:'trends',label:'Trends',icon:'trend'},
+  {id:'toppers',label:'Top performers',icon:'star'},
+  {id:'pending',label:'Pending list',icon:'clock'},
+  {id:'percentile',label:'Percentile dist.',icon:'pie'},
+  {id:'participation',label:'Participation target',icon:'target'},
+  {id:'ssb',label:'SSBs',icon:'ssb'},
+];
+const IC={
+  sync:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>',
+  upload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+  bar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  trend:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  pie:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>',
+  target:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  ssb:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+};
+
+function buildApp(){
+  try{
+    var mc=localStorage.getItem('ims_master');     if(mc)masterData=JSON.parse(mc);
+    var sc=localStorage.getItem('ims_simcat');     if(sc)simcatData=JSON.parse(sc);
+    var bl=localStorage.getItem('ims_batchlists'); if(bl)batchLists=JSON.parse(bl);
+    var sl=localStorage.getItem('ims_ssb_list');   if(sl)ssbList=JSON.parse(sl);
+    var sa=localStorage.getItem('ims_ssb_attend'); if(sa)ssbAttend=JSON.parse(sa);
+  }catch(e){}
+  // Ensure app div is visible
+  const appDiv = document.getElementById('app');
+  const loginDiv = document.getElementById('loginScreen');
+  if(loginDiv) loginDiv.style.display = 'none';
+  if(appDiv) {
+    appDiv.style.display = 'block';
+    appDiv.style.minHeight = '100vh';
+  }
+  loadAllData();
+  const nav=currentUser==='ADMIN'?ADMIN_NAV:MENTOR_NAV;
+  let sb='';
+  nav.forEach(item=>{
+    if(item.s){sb+=`<div class="sidebar-section">${item.s}</div>`;return;}
+    sb+=`<div class="nav-item" id="nav-${item.id}" onclick="showPage('${item.id}')">${IC[item.icon]||''} ${item.label}</div>`;
+  });
+  const sidebarEl = document.getElementById('sidebar');
+  const mainEl = document.getElementById('mainContent');
+  if(!sidebarEl){ alert('ERROR: sidebar div not found!'); return; }
+  if(!mainEl){ alert('ERROR: mainContent div not found!'); return; }
+  sidebarEl.innerHTML=sb;
+  showPage(nav.find(n=>n.id).id);
+}
+
+function showPage(id){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const nav=document.getElementById('nav-'+id);
+  if(nav)nav.classList.add('active');
+  const main=document.getElementById('mainContent');
+  main.innerHTML='';
+  const page=document.createElement('div');
+  page.id='page-'+id;
+  main.appendChild(page);
+  ({masterSync,simcatUpload,attendance,scores,trends,toppers,pending,percentile,participation,ssb})[id]?.(page);
+}
+
+// ── PAGE: MASTER SYNC ─────────────────────────────────────────────
+function masterSync(el){
+  const hasData=masterData.length>0;
+  el.innerHTML=`
+  <div class="page-title">Masterdata</div>
+  <div class="page-sub">Sync live student data from Google Sheets.</div>
+  <div class="card">
+    <div class="card-title">Apps Script URL</div>
+    <div class="notice">Paste your Apps Script Web App URL here. Only needed for masterdata sync — all other data saves locally.</div>
+    <div style="display:flex;gap:8px;margin-bottom:.75rem">
+      <input type="text" id="apiUrlInput" value="${apiUrl}" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;height:36px;padding:0 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;outline:none">
+      <button class="btn btn-brand" onclick="saveApiUrlFn()">Save</button>
+    </div>
+    <div id="apiUrlMsg" style="font-size:12px;color:var(--gray-400)"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Status</div>
+    <div id="syncStatus" style="font-size:13px;color:${hasData?'var(--green)':'var(--gray-400)'}">
+      ${hasData?'✓ '+masterData.length+' students loaded':'No data yet — paste URL above and sync'}
+    </div>
+    <div style="margin-top:1rem">
+      <button class="btn btn-brand" onclick="doSync()">↻ Sync from Google Sheets</button>
+      <div id="syncMsg" style="font-size:12px;color:var(--gray-400);margin-top:6px"></div>
+    </div>
+  </div>
+  <div class="card" id="batchCard" style="${hasData?'':'display:none'}">
+    <div class="card-title">Batch selection per SIMCAT</div>
+    <div class="notice">Select which batches were expected to write each SIMCAT.</div>
+    <div class="controls">
+      <label>SIMCAT:</label>
+      <select id="bsN" onchange="renderBatchSel()">${Array.from({length:20},(_,i)=>`<option value="${i+1}">SIMCAT ${i+1}</option>`).join('')}</select>
+      <button class="btn" onclick="document.querySelectorAll('.bc').forEach(c=>c.checked=true)">All</button>
+      <button class="btn" onclick="document.querySelectorAll('.bc').forEach(c=>c.checked=false)">None</button>
+      <button class="btn btn-brand" onclick="saveBatchSel()">Save</button>
+    </div>
+    <div id="batchGrid" class="batch-grid"></div>
+    <div id="bsMsg" style="font-size:12px;color:var(--gray-400)"></div>
+  </div>`;
+  renderBatchSel();
+}
+
+function saveApiUrlFn(){
+  apiUrl=document.getElementById('apiUrlInput').value.trim();
+  localStorage.setItem('ims_api_url',apiUrl);
+  document.getElementById('apiUrlMsg').textContent=apiUrl?'✓ URL saved.':'URL cleared.';
+  setTimeout(function(){document.getElementById('apiUrlMsg').textContent='';},2000);
+}
+
+async function doSync(){
+  const msg=document.getElementById('syncMsg');
+  const status=document.getElementById('syncStatus');
+  if(!apiUrl){msg.textContent='Paste the Apps Script URL above and click Save first.';return;}
+  msg.textContent='Syncing…';
+  try{
+    const m=await gasCall('master');
+    if(m&&m.rows){
+      masterData=m.rows;
+      localStorage.setItem('ims_master',JSON.stringify(masterData));
+      status.textContent='✓ '+masterData.length+' students loaded';
+      status.style.color='var(--green)';
+      msg.textContent='Done.';
+      document.getElementById('batchCard').style.display='block';
+      renderBatchSel();
+    } else {
+      msg.textContent='Error: '+(m&&m.error?m.error:'No data returned');
+    }
+  }catch(e){msg.textContent='Error: '+e.message;}
+}
+
+function simcatUpload(el){
+  const chips=Array.from({length:20},(_,i)=>i+1).map(n=>`<span class="s-chip${simcatData[n]?' loaded':''}" id="chip${n}">SC${n}</span>`).join('');
+  el.innerHTML=`
+  <div class="page-title">SIMCAT upload</div>
+  <div class="page-sub">Upload the HO Excel report for each SIMCAT (1–20).</div>
+  <div class="card">
+    <div class="card-title">Loaded SIMCATs</div>
+    <div class="simcat-chips">${chips}</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Upload report</div>
+    <div class="notice">Expected columns: IMS Pin / Student Pin, marks_obtained / Total Score, section_1/2/3_marks or VARC/DILR/QA, overAllPercentile</div>
+    <div class="controls-row">
+      <label>SIMCAT:</label>
+      <select id="scN">${Array.from({length:20},(_,i)=>`<option value="${i+1}">SIMCAT ${i+1}</option>`).join('')}</select>
+      <input type="file" id="scFile" accept=".xlsx,.xls,.csv" style="font-size:13px">
+      <button class="btn btn-brand" onclick="doSimcatUpload()">Upload file</button>
+      <span style="font-size:12px;color:var(--gray-400)">or</span>
+      <button class="btn" onclick="showPastePanel()">Paste from portal</button>
+    </div>
+    <div id="scMsg" style="font-size:12px;color:var(--gray-400);margin-top:4px"></div>
+  </div>
+  <div class="card" id="pastePanel" style="display:none">
+    <div class="card-title">Paste data from CRM portal</div>
+    <div class="notice">In the CRM portal, open the SIMCAT report → select all (Ctrl+A) → copy (Ctrl+C) → click in the box below → paste (Ctrl+V).</div>
+    <textarea id="pasteArea" placeholder="Paste report data here…" style="width:100%;height:140px;border:1px solid var(--gray-200);border-radius:var(--radius);padding:10px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:var(--gray-800)"></textarea>
+    <div class="controls-row" style="margin-top:8px">
+      <button class="btn btn-brand" onclick="processPaste()">Parse &amp; load</button>
+      <button class="btn" onclick="document.getElementById('pastePanel').style.display='none'">Cancel</button>
+      <div id="pasteMsg" style="font-size:12px;color:var(--gray-400)"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Remove SIMCAT data</div>
+    <div class="controls-row">
+      <label>SIMCAT:</label>
+      <select id="scDel">${Array.from({length:20},(_,i)=>`<option value="${i+1}">SIMCAT ${i+1}</option>`).join('')}</select>
+      <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteSimcat()">Remove</button>
+    </div>
+  </div>`;
+}
+
+async function doSimcatUpload(){
+  const n=parseInt(document.getElementById('scN').value);
+  const file=document.getElementById('scFile').files[0];
+  const msg=document.getElementById('scMsg');
+  if(!file){msg.textContent='Select a file first.';return;}
+  msg.textContent='Reading…';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      const parsed=rows.map(r=>{
+        const keys=Object.keys(r);
+        const find=(...pp)=>{const k=keys.find(k=>pp.some(p=>k.toLowerCase().split(' ').join('').split('_').join('').indexOf(p)>=0));return k?String(r[k]).trim():'';}
+        const fN=(...pp)=>{const v=find(...pp);const nv=parseFloat(v);return isNaN(nv)?null:nv;}
+        return{
+          ims_pin:find('imspin','imsid','studentpin','student_pin','ims_pin'),
+          name:find('studentname','student_name','name'),
+          total:fN('marksobtained','marks_obtained','overallscore','totalscore','total'),
+          varc:fN('section1marksobtained','section1marks','varcscore','varc','verbal'),
+          dilr:fN('section2marksobtained','section2marks','dilrscore','dilr','datainterpretation'),
+          qa:fN('section3marksobtained','section3marks','qascore','quantitative','qa'),
+          percentile:fN('overallpercentile','percentile'),
+        };
+      }).filter(r=>r.ims_pin&&r.ims_pin!==''&&r.ims_pin!=='undefined'&&r.ims_pin!=='null');
+      parsed.forEach(r=>{if(r.total===null)r.total=0;});
+      if(!parsed.length){msg.textContent='No valid rows found. Columns needed: ims_pin + marks_obtained/VARC Score + percentile';return;}
+      simcatData[n]=parsed;
+      saveLocal();
+      msg.textContent='✓ SIMCAT '+n+': '+parsed.length+' records saved locally.';
+      msg.style.color='var(--green)';
+      const chip=document.getElementById('chip'+n);
+      if(chip)chip.className='s-chip loaded';
+      setTimeout(function(){msg.style.color='';},3000);
+    }catch(err){msg.textContent='⚠ '+err.message;}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function deleteSimcat(){
+  const n=parseInt(document.getElementById('scDel').value);
+  if(!confirm('Remove all data for SIMCAT '+n+'?'))return;
+  delete simcatData[n];
+  saveLocal();
+  const chip=document.getElementById('chip'+n);
+  if(chip)chip.className='s-chip';
+  alert(`SIMCAT ${n} data removed.`);
+}
+
+// ── PAGE: ATTENDANCE ──────────────────────────────────────────────
+function attendance(el){
+  el.innerHTML=`
+  <div class="page-title">Attendance</div>
+  <div class="page-sub">Test completion rates per batch and mentor.</div>
+  <div class="controls-row">
+    <label>SIMCAT:</label>${simcatSelectHTML('attSC','renderAtt()')}
+    <label>Group by:</label>${groupByHTML('attGroup','renderAtt()')}
+    ${currentUser==='ADMIN'?`<label>Mentor:</label>${mentorHTML('attMentor','renderAtt()')}`:'' }
+    <button class="btn btn-accent" onclick="downloadAttendance()">⬇ Download image</button>
+  </div>
+  <div id="attCapture">
+    <div id="attMetrics" class="metric-grid"></div>
+    <div class="card"><div id="attTable"></div></div>
+  </div>`;
+  renderAtt();
+}
+
+function downloadAttendance(){
+  const el=document.getElementById('attCapture');
+  if(!el){alert('No attendance data to download.');return;}
+  const n=getSimcatNum('attSC');
+  html2canvas(el,{scale:2,backgroundColor:'#f8f8f7',useCORS:true}).then(canvas=>{
+    const a=document.createElement('a');
+    a.download=`Attendance_SIMCAT${n}_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}.png`;
+    a.href=canvas.toDataURL('image/png');a.click();
+  });
+}
+
+function renderAtt(){
+  const n=getSimcatNum('attSC');
+  const gby=document.getElementById('attGroup')?.value||'batch';
+  const mf=document.getElementById('attMentor')?.value||currentUser;
+  const met=document.getElementById('attMetrics');
+  const tbl=document.getElementById('attTable');
+  if(!n||!simcatData[n]){met.innerHTML='';tbl.innerHTML='<div class="empty">No SIMCAT data loaded.</div>';return;}
+  let students=eligibleForSimcat(n);
+  if(mf&&mf!=='all')students=students.filter(r=>getMentor(r)===mf);
+  if(currentUser!=='ADMIN')students=students.filter(r=>getMentor(r)===currentUser);
+  const hoMap=buildHoMap(n);
+  const given=students.filter(r=>hoMap[(r.ims_pin||'').toUpperCase().trim()]).length;
+  const total=students.length;
+  const pend=total-given;
+  const pct=total?(given/total*100).toFixed(2):0;
+  met.innerHTML=`
+    <div class="metric brand"><div class="metric-label">Eligible</div><div class="metric-val">${total}</div><div class="metric-sub">Active + Cancellation</div></div>
+    <div class="metric green"><div class="metric-label">Given</div><div class="metric-val">${given}</div><div class="metric-sub">${pct}%</div></div>
+    <div class="metric ${pend>0?'red':'green'}"><div class="metric-label">Pending</div><div class="metric-val">${pend}</div><div class="metric-sub">yet to write</div></div>
+    <div class="metric"><div class="metric-label">Completion</div><div class="metric-val">${pct}%</div><div class="metric-sub">SIMCAT ${n}</div></div>`;
+  const groups=groupStudents(students,gby,hoMap);
+  const sorted=Object.entries(groups).sort((a,b)=>{const pA=a[1].total?a[1].given/a[1].total:0,pB=b[1].total?b[1].given/b[1].total:0;return pB-pA;});
+  let html=`<div class="table-wrap"><table><thead><tr><th>#</th><th>${gby==='mentor'?'Mentor':'Batch'}</th>${gby==='batch'?'<th>Mentor</th>':''}<th>Eligible</th><th>Given</th><th>Pending</th><th>Completion</th></tr></thead><tbody>`;
+  sorted.forEach(([key,v],i)=>{
+    const p=v.total?(v.given/v.total*100).toFixed(2):0;const pc=pctClass(p);
+    html+=`<tr><td>${i<3?`<span class="rank-badge rank-${i+1}">${i+1}</span>`:i+1}</td><td><strong>${key}</strong></td>${gby==='batch'?`<td><span class="tag tag-b">${v.mentor}</span></td>`:''}<td>${v.total}</td><td style="color:var(--green);font-weight:500">${v.given}</td><td style="color:${v.total-v.given>0?'var(--red)':'var(--green)'};font-weight:500">${v.total-v.given}</td><td><div style="font-size:12px;font-weight:600">${p}%</div><div class="pct-bar"><div class="pct-fill ${pc}" style="width:${p}%"></div></div></td></tr>`;
+  });
+  html+='</tbody></table></div>';
+  tbl.innerHTML=html;
+}
+
+// ── PAGE: SCORES ──────────────────────────────────────────────────
+function scores(el){
+  el.innerHTML=`
+  <div class="page-title">Score analytics</div>
+  <div class="page-sub">Average VARC, DILR, QA and total scores by group.</div>
+  <div class="controls-row">
+    <label>SIMCAT:</label>${simcatSelectHTML('scSC','renderScores()')}
+    <label>Group by:</label>${groupByHTML('scGroup','renderScores()')}
+    ${currentUser==='ADMIN'?`<label>Mentor:</label>${mentorHTML('scMentor','renderScores()')}`:'' }
+  </div>
+  <div class="card"><div id="scTable"></div></div>
+  <div class="two-col">
+    <div class="card"><div class="card-title">Average total score</div><div class="chart-wrap" style="height:280px"><canvas id="scBarChart" role="img" aria-label="Bar chart of average total scores"></canvas></div></div>
+    <div class="card"><div class="card-title">Section averages</div><div class="chart-wrap" style="height:280px"><canvas id="scSectionChart" role="img" aria-label="Grouped bar chart VARC DILR QA"></canvas></div></div>
+  </div>`;
+  renderScores();
+}
+
+function renderScores(){
+  const n=getSimcatNum('scSC');
+  const gby=document.getElementById('scGroup')?.value||'batch';
+  const mf=document.getElementById('scMentor')?.value||currentUser;
+  const tbl=document.getElementById('scTable');
+  if(!n||!simcatData[n]){tbl.innerHTML='<div class="empty">No SIMCAT data.</div>';return;}
+  let students=eligibleForSimcat(n);
+  if(mf&&mf!=='all')students=students.filter(r=>getMentor(r)===mf);
+  if(currentUser!=='ADMIN')students=students.filter(r=>getMentor(r)===currentUser);
+  const hoMap=buildHoMap(n);
+  const groups=groupStudents(students,gby,hoMap);
+  const sorted=Object.entries(groups).sort((a,b)=>(avg(b[1].tots)||0)-(avg(a[1].tots)||0));
+  let html=`<div class="table-wrap"><table><thead><tr><th>#</th><th>${gby==='mentor'?'Mentor':'Batch'}</th>${gby==='batch'?'<th>Mentor</th>':''}<th>n</th><th>Avg VARC</th><th>Avg DILR</th><th>Avg QA</th><th>Avg Total</th></tr></thead><tbody>`;
+  sorted.forEach(([key,v],i)=>{
+    html+=`<tr><td>${i+1}</td><td><strong>${key}</strong></td>${gby==='batch'?`<td><span class="tag tag-b">${v.mentor}</span></td>`:''}<td>${v.tots.length}</td><td>${fmtN(avg(v.varc))}</td><td>${fmtN(avg(v.dilr))}</td><td>${fmtN(avg(v.qa))}</td><td style="font-weight:600">${fmtN(avg(v.tots))}</td></tr>`;
+  });
+  html+='</tbody></table></div>';
+  tbl.innerHTML=html;
+  const labels=sorted.map(([k])=>k);
+  const tots=sorted.map(([,v])=>avg(v.tots)?parseFloat(fmtN(avg(v.tots))):0);
+  makeChart('scBarChart',{type:'bar',data:{labels,datasets:[{label:'Avg Total',data:tots,backgroundColor:'#1a3a5c',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},maxRotation:45}},y:{beginAtZero:true,ticks:{font:{size:11}}}}}});
+  makeChart('scSectionChart',{type:'bar',data:{labels,datasets:[{label:'VARC',data:sorted.map(([,v])=>avg(v.varc)?parseFloat(fmtN(avg(v.varc))):0),backgroundColor:'#1D9E75',borderRadius:3},{label:'DILR',data:sorted.map(([,v])=>avg(v.dilr)?parseFloat(fmtN(avg(v.dilr))):0),backgroundColor:'#378ADD',borderRadius:3},{label:'QA',data:sorted.map(([,v])=>avg(v.qa)?parseFloat(fmtN(avg(v.qa))):0),backgroundColor:'#e07b39',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:11},boxWidth:12}}},scales:{x:{ticks:{font:{size:10},maxRotation:45}},y:{beginAtZero:true,ticks:{font:{size:11}}}}}});
+}
+
+// ── PAGE: TRENDS ──────────────────────────────────────────────────
+function trends(el){
+  el.innerHTML=`
+  <div class="page-title">Trends</div>
+  <div class="page-sub">Attendance and score trajectory across SIMCATs.</div>
+  <div class="controls-row">
+    <label>Metric:</label>
+    <select id="tMetric" onchange="renderTrends()">
+      <option value="pct">Attendance %</option>
+      <option value="total">Avg total score</option>
+      <option value="varc">Avg VARC</option>
+      <option value="dilr">Avg DILR</option>
+      <option value="qa">Avg QA</option>
+    </select>
+    <label>Mentor:</label>${mentorHTML('tMentor','renderTrends()')}
+  </div>
+  <div class="card">
+    <div class="legend-row" id="tLegend"></div>
+    <div class="chart-wrap" style="height:320px"><canvas id="tChart" role="img" aria-label="Trend line chart across SIMCATs"></canvas></div>
+  </div>
+  <div class="card"><div id="tTable"></div></div>`;
+  renderTrends();
+}
+
+function renderTrends(){
+  const metric=document.getElementById('tMetric')?.value||'pct';
+  const mf=document.getElementById('tMentor')?.value||currentUser;
+  const loaded=Object.keys(simcatData).map(Number).sort((a,b)=>a-b);
+  if(!loaded.length){document.getElementById('tChart').parentElement.innerHTML='<div class="empty">Upload SIMCATs to see trends.</div>';return;}
+  const mentors=mf==='all'?[...new Set(eligible().map(r=>getMentor(r)).filter(m=>m&&m!=='—'))].sort():[mf];
+  const colors=['#1a3a5c','#1D9E75','#e07b39','#7F77DD','#D4537E','#378ADD','#BA7517','#D85A30'];
+  const datasets=mentors.slice(0,8).map((m,i)=>{
+    const data=loaded.map(n=>{
+      const students=eligibleForSimcat(n).filter(r=>getMentor(r)===m);
+      const hoMap=buildHoMap(n);
+      if(metric==='pct')return students.length?parseFloat((students.filter(r=>hoMap[(r.ims_pin||'').toUpperCase().trim()]).length/students.length*100).toFixed(2)):null;
+      const vals=students.filter(r=>hoMap[(r.ims_pin||'').toUpperCase().trim()]).map(r=>{const h=hoMap[(r.ims_pin||'').toUpperCase().trim()];return metric==='varc'?h.varc:metric==='dilr'?h.dilr:metric==='qa'?h.qa:h.total;}).filter(v=>v!==null);
+      return vals.length?parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)):null;
+    });
+    return{label:m,data,borderColor:colors[i%colors.length],backgroundColor:colors[i%colors.length]+'22',tension:.35,pointRadius:5,borderWidth:2,spanGaps:true};
+  });
+  document.getElementById('tLegend').innerHTML=datasets.map((d,i)=>`<span class="legend-item"><span class="legend-sq" style="background:${colors[i%colors.length]}"></span>${d.label}</span>`).join('');
+  makeChart('tChart',{type:'line',data:{labels:loaded.map(n=>'SIMCAT '+n),datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:metric==='pct',max:metric==='pct'?100:undefined,ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:11}},grid:{display:false}}}}});
+  let html=`<div class="table-wrap"><table><thead><tr><th>Mentor</th>${loaded.map(n=>`<th>SC${n}</th>`).join('')}</tr></thead><tbody>`;
+  datasets.forEach(d=>{html+=`<tr><td><strong>${d.label}</strong></td>${d.data.map(v=>`<td>${v===null?'—':metric==='pct'?v+'%':v}</td>`).join('')}</tr>`;});
+  html+='</tbody></table></div>';
+  document.getElementById('tTable').innerHTML=html;
+}
+
+// ── PAGE: TOPPERS ─────────────────────────────────────────────────
+function toppers(el){
+  const batches=allBatches();
+  el.innerHTML=`
+  <div class="page-title">Top performers</div>
+  <div class="page-sub">Ranked leaderboard per batch.</div>
+  <div class="controls-row">
+    <label>SIMCAT:</label>${simcatSelectHTML('tpSC','renderToppers()')}
+    <label>Top:</label>
+    <select id="tpN" onchange="renderToppers()"><option value="3">3</option><option value="5" selected>5</option><option value="10">10</option></select>
+    <label>Batch:</label>
+    <select id="tpBatch" onchange="renderToppers()"><option value="all">All batches</option>${batches.map(b=>`<option value="${b}">${b}</option>`).join('')}</select>
+    ${currentUser==='ADMIN'?`<label>Mentor:</label>${mentorHTML('tpMentor','renderToppers()')}`:'' }
+  </div>
+  <div id="tpContent"></div>`;
+  renderToppers();
+}
+
+function renderToppers(){
+  const n=getSimcatNum('tpSC');
+  const topN=parseInt(document.getElementById('tpN')?.value)||5;
+  const bf=document.getElementById('tpBatch')?.value||'all';
+  const mf=document.getElementById('tpMentor')?.value||currentUser;
+  const el=document.getElementById('tpContent');
+  if(!n||!simcatData[n]){el.innerHTML='<div class="empty">No SIMCAT data.</div>';return;}
+  let students=eligibleForSimcat(n);
+  if(mf&&mf!=='all')students=students.filter(r=>getMentor(r)===mf);
+  if(currentUser!=='ADMIN')students=students.filter(r=>getMentor(r)===currentUser);
+  const hoMap=buildHoMap(n);
+  const batches=bf==='all'?[...new Set(students.map(r=>getBatch(r)).filter(Boolean))].sort():[bf];
+  let html='';
+  batches.forEach(batch=>{
+    const bs=students.filter(r=>getBatch(r)===batch&&hoMap[(r.ims_pin||'').toUpperCase().trim()]);
+    if(!bs.length)return;
+    bs.sort((a,b)=>(hoMap[(b.ims_pin||'').toUpperCase().trim()].total||0)-(hoMap[(a.ims_pin||'').toUpperCase().trim()].total||0));
+    html+=`<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem"><span style="font-size:14px;font-weight:600">${batch}</span><span class="tag tag-b">${getMentor(bs[0])}</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Name</th><th>IMS Pin</th><th>VARC</th><th>DILR</th><th>QA</th><th>Total</th><th>%ile</th></tr></thead><tbody>`;
+    bs.slice(0,topN).forEach((r,i)=>{
+      const ho=hoMap[(r.ims_pin||'').toUpperCase().trim()];
+      html+=`<tr><td>${i<3?`<span class="rank-badge rank-${i+1}">${i+1}</span>`:i+1}</td><td>${r.name||'—'}</td><td style="font-size:12px;color:var(--gray-400)">${r.ims_pin}</td><td>${ho.varc!==null?ho.varc.toFixed(0):'—'}</td><td>${ho.dilr!==null?ho.dilr.toFixed(0):'—'}</td><td>${ho.qa!==null?ho.qa.toFixed(0):'—'}</td><td style="font-weight:600">${ho.total!==null?ho.total.toFixed(0):'—'}</td><td>${ho.percentile!==null?ho.percentile.toFixed(1):'—'}</td></tr>`;
+    });
+    html+='</tbody></table></div></div>';
+  });
+  el.innerHTML=html||'<div class="empty">No data.</div>';
+}
+
+// ── PAGE: PENDING ─────────────────────────────────────────────────
+function pending(el){
+  const batches=allBatches();
+  el.innerHTML=`
+  <div class="page-title">Pending list</div>
+  <div class="page-sub">Students yet to write. Download as image to share on WhatsApp / email.</div>
+  <div class="controls-row">
+    <label>SIMCAT:</label>${simcatSelectHTML('pdSC','renderPending()')}
+    <label>Batch:</label>
+    <select id="pdBatch" onchange="renderPending()"><option value="all">All batches</option>${batches.map(b=>`<option value="${b}">${b}</option>`).join('')}</select>
+    ${currentUser==='ADMIN'?`<label>Mentor:</label>${mentorHTML('pdMentor','renderPending()')}`:'' }
+    <button class="btn btn-accent" onclick="downloadPending()">⬇ Download image</button>
+  </div>
+  <div id="pdMetrics" class="metric-grid"></div>
+  <div id="pdContent"></div>`;
+  renderPending();
+}
+
+function renderPending(){
+  const n=getSimcatNum('pdSC');
+  const bf=document.getElementById('pdBatch')?.value||'all';
+  const mf=document.getElementById('pdMentor')?.value||currentUser;
+  if(!n||!simcatData[n]){document.getElementById('pdContent').innerHTML='<div class="empty">No SIMCAT data.</div>';return;}
+  // Pending: ACTIVE students only
+  let students=eligibleForSimcat(n).filter(r=>(r.status||'').toLowerCase().trim()==='active');
+  if(mf&&mf!=='all')students=students.filter(r=>getMentor(r)===mf);
+  if(currentUser!=='ADMIN')students=students.filter(r=>getMentor(r)===currentUser);
+  if(bf!=='all')students=students.filter(r=>getBatch(r)===bf);
+  const hoMap=buildHoMap(n);
+  const pend=students.filter(r=>!hoMap[(r.ims_pin||'').toUpperCase().trim()]);
+  const given=students.length-pend.length;
+  document.getElementById('pdMetrics').innerHTML=`
+    <div class="metric brand"><div class="metric-label">Active students</div><div class="metric-val">${students.length}</div></div>
+    <div class="metric green"><div class="metric-label">Given</div><div class="metric-val">${given}</div></div>
+    <div class="metric red"><div class="metric-label">Pending</div><div class="metric-val">${pend.length}</div></div>`;
+  if(!pend.length){document.getElementById('pdContent').innerHTML='<div class="empty">All active students have written this SIMCAT!</div>';return;}
+  const grouped={};
+  pend.forEach(r=>{const b=getBatch(r);if(!grouped[b])grouped[b]=[];grouped[b].push(r);});
+  let html=`<div id="pendingCard" style="background:var(--white);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--gray-200)">
+    <div style="background:var(--brand);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:15px;font-weight:700">SIMCAT ${n} · Pending Active Students</span>
+      <span style="font-size:12px;opacity:.75">${new Date().toLocaleDateString('en-IN')} · ${pend.length} students</span>
+    </div>`;
+  Object.entries(grouped).sort().forEach(([batch,list])=>{
+    html+=`<div style="padding:7px 16px;background:var(--brand-light);font-size:12px;font-weight:600;color:var(--brand);border-bottom:1px solid var(--gray-200)">${batch} <span style="font-weight:400;color:var(--gray-400)">· ${getMentor(list[0])} · ${list.length} pending</span></div>
+    <table style="width:100%;border-collapse:collapse"><tbody>`;
+    list.forEach((r,i)=>{html+=`<tr style="background:${i%2===0?'#fff':'var(--gray-50)'}"><td style="padding:6px 16px;font-size:13px">${r.name||'—'}</td></tr>`;});
+    html+='</tbody></table>';
+  });
+  html+='</div>';
+  document.getElementById('pdContent').innerHTML=html;
+}
+
+function downloadPending(){
+  const el=document.getElementById('pendingCard');
+  if(!el){alert('No pending data to download.');return;}
+  html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(canvas=>{
+    const a=document.createElement('a');
+    a.download=`Pending_SIMCAT_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}.png`;
+    a.href=canvas.toDataURL('image/png');a.click();
+  });
+}
+
+// ── PAGE: PERCENTILE ──────────────────────────────────────────────
+function percentile(el){
+  const batches=allBatches();
+  el.innerHTML=`
+  <div class="page-title">Percentile distribution</div>
+  <div class="page-sub">How students are spread across percentile bands.</div>
+  <div class="controls-row">
+    <label>SIMCAT:</label>${simcatSelectHTML('pctSC','renderPct()')}
+    ${currentUser==='ADMIN'?`<label>Mentor:</label>${mentorHTML('pctMentor','renderPct()')}`:'' }
+    <label>Batch:</label>
+    <select id="pctBatch" onchange="renderPct()"><option value="all">All batches</option>${batches.map(b=>`<option value="${b}">${b}</option>`).join('')}</select>
+  </div>
+  <div class="two-col">
+    <div class="card"><div class="card-title">Percentile bands</div><div class="chart-wrap" style="height:260px"><canvas id="pctBand" role="img" aria-label="Students per percentile band"></canvas></div></div>
+    <div class="card"><div class="card-title">Score vs percentile</div><div class="chart-wrap" style="height:260px"><canvas id="pctScatter" role="img" aria-label="Scatter: score vs percentile"></canvas></div></div>
+  </div>
+  <div class="card"><div id="pctTable"></div></div>`;
+  renderPct();
+}
+
+function renderPct(){
+  const n=getSimcatNum('pctSC');
+  const mf=document.getElementById('pctMentor')?.value||currentUser;
+  const bf=document.getElementById('pctBatch')?.value||'all';
+  if(!n||!simcatData[n])return;
+  let students=eligibleForSimcat(n);
+  if(mf&&mf!=='all')students=students.filter(r=>getMentor(r)===mf);
+  if(currentUser!=='ADMIN')students=students.filter(r=>getMentor(r)===currentUser);
+  if(bf!=='all')students=students.filter(r=>getBatch(r)===bf);
+  const hoMap=buildHoMap(n);
+  const records=students.map(r=>hoMap[(r.ims_pin||'').toUpperCase().trim()]).filter(Boolean).filter(r=>r.percentile!==null);
+  const BANDS=[{l:'90–100',min:90,max:101},{l:'80–90',min:80,max:90},{l:'70–80',min:70,max:80},{l:'60–70',min:60,max:70},{l:'50–60',min:50,max:60},{l:'Below 50',min:0,max:50}];
+  const counts=BANDS.map(b=>records.filter(r=>r.percentile>=b.min&&r.percentile<b.max).length);
+  const bColors=['#1D9E75','#3B8BDB','#5B7AE0','#e07b39','#BA7517','#E24B4A'];
+  makeChart('pctBand',{type:'bar',data:{labels:BANDS.map(b=>b.l),datasets:[{label:'Students',data:counts,backgroundColor:bColors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{beginAtZero:true,ticks:{font:{size:11},stepSize:1}}}}});
+  makeChart('pctScatter',{type:'scatter',data:{datasets:[{label:'Students',data:records.map(r=>({x:r.total,y:r.percentile})),backgroundColor:'#1a3a5c88',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Total score',font:{size:11}},ticks:{font:{size:10}}},y:{title:{display:true,text:'Percentile',font:{size:11}},min:0,max:100,ticks:{font:{size:10}}}}}});
+  let html=`<div class="table-wrap"><table><thead><tr><th>Band</th><th>Students</th><th>%</th><th>Visual</th></tr></thead><tbody>`;
+  BANDS.forEach((b,i)=>{const c=counts[i];const p=records.length?(c/records.length*100).toFixed(2):0;html+=`<tr><td><strong>${b.l}</strong></td><td>${c}</td><td>${p}%</td><td><div class="pct-bar" style="min-width:100px"><div class="pct-fill" style="width:${p}%;background:${bColors[i]}"></div></div></td></tr>`;});
+  html+='</tbody></table></div>';
+  document.getElementById('pctTable').innerHTML=html;
+}
+
+// ── PAGE: PARTICIPATION TARGET ────────────────────────────────────────────────
+const ANNUAL_TARGET = 17.5;
+const TOTAL_SIMCATS = 20;
+
+function participation(el){
+  el.innerHTML=`
+  <div class="page-title">Participation target</div>
+  <div class="page-sub">Average SIMCATs written per student per mentor vs annual target of ${ANNUAL_TARGET} / ${TOTAL_SIMCATS}.</div>
+  <div class="notice">Base: Active + Cancellation students per batch. Target: each student writes <strong>${ANNUAL_TARGET}</strong> out of ${TOTAL_SIMCATS} SIMCATs.</div>
+  ${currentUser==='ADMIN'?`<div class="controls-row"><label>Mentor:</label>${mentorHTML('partMentor','renderParticipation()')}</div>`:''}
+  <div id="partMetrics" class="metric-grid" style="margin-bottom:1rem"></div>
+  <div class="two-col">
+    <div class="card"><div class="card-title">Avg SIMCATs per student by mentor</div><div class="chart-wrap" style="height:280px"><canvas id="partChart" role="img" aria-label="Participation bar chart"></canvas></div></div>
+    <div class="card"><div class="card-title">Target tracker</div><div id="partGauge"></div></div>
+  </div>
+  <div class="card"><div id="partTable"></div></div>`;
+  renderParticipation();
+}
+
+function renderParticipation(){
+  const mf=currentUser==='ADMIN'?(document.getElementById('partMentor')?.value||'all'):currentUser;
+  const loaded=Object.keys(simcatData).map(Number).sort((a,b)=>a-b);
+  if(!loaded.length){
+    document.getElementById('partMetrics').innerHTML='';
+    document.getElementById('partTable').innerHTML='<div class="empty">Upload SIMCAT data to see participation.</div>';
+    return;
+  }
+
+  // For each mentor, for each batch: count eligible (active+cancellation) students
+  // and count how many times each student appears in uploaded SIMCATs
+  const mentors = mf==='all'
+    ? [...new Set(eligible().map(r=>getMentor(r)).filter(m=>m&&m!=='—'))].sort()
+    : [mf];
+
+  // Build per-student participation count across all loaded SIMCATs
+  const studentSimcatCount = {}; // ims_pin -> count of SIMCATs written
+  loaded.forEach(n=>{
+    const hoMap=buildHoMap(n);
+    // only count students in batches selected for this SIMCAT
+    eligibleForSimcat(n).forEach(r=>{
+      const pin=(r.ims_pin||'').toUpperCase().trim();
+      if(!pin)return;
+      if(hoMap[pin]){
+        studentSimcatCount[pin]=(studentSimcatCount[pin]||0)+1;
+      }
+    });
+  });
+
+  // Group by mentor
+  const mentorStats={};
+  mentors.forEach(m=>{
+    const students=eligible().filter(r=>getMentor(r)===m);
+    if(!students.length)return;
+    let totalWritten=0;
+    students.forEach(r=>{
+      const pin=(r.ims_pin||'').toUpperCase().trim();
+      totalWritten+=(studentSimcatCount[pin]||0);
+    });
+    const avgPerStudent=students.length?totalWritten/students.length:0;
+    // Project to full 20 SIMCATs based on loaded count
+    const projected=loaded.length?avgPerStudent*(TOTAL_SIMCATS/loaded.length):0;
+    mentorStats[m]={students:students.length,totalWritten,avgPerStudent,projected,batches:[...new Set(students.map(r=>getBatch(r)).filter(Boolean))].length};
+  });
+
+  const sorted=Object.entries(mentorStats).sort((a,b)=>b[1].avgPerStudent-a[1].avgPerStudent);
+  const overallStudents=eligible().filter(r=>mf==='all'||getMentor(r)===mf).length;
+  const overallWritten=eligible().filter(r=>mf==='all'||getMentor(r)===mf).reduce((sum,r)=>{
+    const pin=(r.ims_pin||'').toUpperCase().trim();
+    return sum+(studentSimcatCount[pin]||0);
+  },0);
+  const overallAvg=overallStudents?overallWritten/overallStudents:0;
+  const overallProjected=loaded.length?overallAvg*(TOTAL_SIMCATS/loaded.length):0;
+  const targetPct=Math.min(Math.round(overallProjected/ANNUAL_TARGET*100),150);
+  const onTrack=overallProjected>=ANNUAL_TARGET*0.9;
+
+  document.getElementById('partMetrics').innerHTML=`
+    <div class="metric brand"><div class="metric-label">SIMCATs loaded</div><div class="metric-val">${loaded.length}</div><div class="metric-sub">of ${TOTAL_SIMCATS} total</div></div>
+    <div class="metric"><div class="metric-label">Avg per student</div><div class="metric-val">${overallAvg.toFixed(1)}</div><div class="metric-sub">across ${loaded.length} SIMCATs</div></div>
+    <div class="metric ${onTrack?'green':'amber'}"><div class="metric-label">Projected (full year)</div><div class="metric-val">${overallProjected.toFixed(1)}</div><div class="metric-sub">target: ${ANNUAL_TARGET}</div></div>
+    <div class="metric ${onTrack?'green':'red'}"><div class="metric-label">On target</div><div class="metric-val">${onTrack?'Yes':'No'}</div><div class="metric-sub">${targetPct}% of target</div></div>`;
+
+  // Gauge / target bars
+  let gaugeHtml='<div style="padding:.5rem 0">';
+  sorted.forEach(([m,v])=>{
+    const pct=Math.min(v.projected/ANNUAL_TARGET*100,120);
+    const color=pct>=100?'var(--green)':pct>=80?'var(--amber)':'var(--red)';
+    gaugeHtml+=`<div style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="font-weight:500">${m}</span>
+        <span style="color:${color};font-weight:600">${v.projected.toFixed(1)} / ${ANNUAL_TARGET}</span>
+      </div>
+      <div style="height:8px;background:var(--gray-200);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(pct,100)}%;background:${color};border-radius:4px;transition:width .5s"></div>
+      </div>
+    </div>`;
+  });
+  // Target line marker
+  gaugeHtml+='<div style="font-size:11px;color:var(--gray-400);margin-top:4px">Bar shows projected annual participation vs ${ANNUAL_TARGET} target</div></div>';
+  document.getElementById('partGauge').innerHTML=gaugeHtml;
+
+  // Bar chart
+  const colors=['#1a3a5c','#1D9E75','#e07b39','#7F77DD','#D4537E','#378ADD','#BA7517','#D85A30'];
+  makeChart('partChart',{
+    type:'bar',
+    data:{
+      labels:sorted.map(([m])=>m),
+      datasets:[
+        {label:'Avg SIMCATs written',data:sorted.map(([,v])=>parseFloat(v.avgPerStudent.toFixed(2))),backgroundColor:sorted.map((_,i)=>colors[i%colors.length]),borderRadius:4},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        annotation:{annotations:{target:{type:'line',yMin:ANNUAL_TARGET/TOTAL_SIMCATS*loaded.length,yMax:ANNUAL_TARGET/TOTAL_SIMCATS*loaded.length,borderColor:'#c0392b',borderWidth:2,borderDash:[4,4]}}}
+      },
+      scales:{x:{ticks:{font:{size:11}}},y:{beginAtZero:true,title:{display:true,text:'Avg SIMCATs per student',font:{size:11}},ticks:{font:{size:11}}}}
+    }
+  });
+
+  // Table
+  const expectedSoFar=parseFloat((ANNUAL_TARGET/TOTAL_SIMCATS*loaded.length).toFixed(2));
+  let html=`<div class="notice" style="margin-bottom:.75rem">Expected avg so far (${loaded.length} of ${TOTAL_SIMCATS} SIMCATs done): <strong>${expectedSoFar}</strong> per student</div>
+  <div class="table-wrap"><table><thead><tr>
+    <th>#</th><th>Mentor</th><th>Batches</th><th>Students</th><th>Total writes</th><th>Avg so far</th><th>Expected so far</th><th>Projected (year)</th><th>Status</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(([m,v],i)=>{
+    const status=v.avgPerStudent>=expectedSoFar?'<span class="tag tag-g">On track</span>':'<span class="tag tag-r">Behind</span>';
+    const diff=v.avgPerStudent-expectedSoFar;
+    html+=`<tr>
+      <td>${i+1}</td>
+      <td><strong>${m}</strong></td>
+      <td>${v.batches}</td>
+      <td>${v.students}</td>
+      <td>${v.totalWritten}</td>
+      <td style="font-weight:600">${v.avgPerStudent.toFixed(2)}</td>
+      <td style="color:var(--gray-400)">${expectedSoFar}</td>
+      <td style="font-weight:600;color:${v.projected>=ANNUAL_TARGET?'var(--green)':'var(--red)'}">${v.projected.toFixed(1)}</td>
+      <td>${status} <span style="font-size:11px;color:var(--gray-400)">(${diff>=0?'+':''}${diff.toFixed(2)})</span></td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('partTable').innerHTML=html;
+}
+
+// ── PASTE FROM PORTAL ─────────────────────────────────────────────
+function showPastePanel(){
+  const p=document.getElementById('pastePanel');
+  p.style.display=p.style.display==='none'?'block':'none';
+  if(p.style.display==='block') document.getElementById('pasteArea').focus();
+}
+
+function processPaste(){
+  const raw=document.getElementById('pasteArea').value.trim();
+  const msg=document.getElementById('pasteMsg');
+  const n=parseInt(document.getElementById('scN').value);
+  if(!raw){msg.textContent='Nothing pasted yet.';return;}
+  msg.textContent='Parsing…';
+
+  // Split into rows — handle tab-separated (from portal table copy) or comma-separated
+  const lines=raw.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2){msg.textContent='⚠ Need at least a header row + data rows.';return;}
+
+  // Detect delimiter: tabs are most common from portal/Excel copy
+  const delim=lines[0].includes('\t')?'\t':',';
+  const headers=lines[0].split(delim).map(h=>h.trim().toLowerCase().replace(/[\s_\-"]/g,''));
+
+  const findCol=(...patterns)=>{
+    const idx=headers.findIndex(h=>patterns.some(p=>h.includes(p)));
+    return idx;
+  };
+
+  const cols={
+    ims_pin:  findCol('imspin','imsid','studentpin','student_pin','pin'),
+    name:     findCol('studentname','student_name','name'),
+    total:    findCol('marksobtained','marks_obtained','totalscore','total','marks'),
+    varc:     findCol('section1','varc','verbal'),
+    dilr:     findCol('section2','dilr','datainterpretation','di'),
+    qa:       findCol('section3','quantitative','qa','quant'),
+    percentile:findCol('overallpercentile','percentile','overall%ile'),
+  };
+
+  if(cols.ims_pin<0){msg.textContent='⚠ Cannot find IMS Pin column. Check the pasted data.';return;}
+  if(cols.total<0){msg.textContent='⚠ Cannot find marks/score column. Check the pasted data.';return;}
+
+  const parsed=[];
+  for(let i=1;i<lines.length;i++){
+    const cells=lines[i].split(delim).map(c=>c.replace(/^["']|["']$/g,'').trim());
+    const pin=cols.ims_pin>=0?cells[cols.ims_pin]?.trim():'';
+    if(!pin||pin==='#N/A'||pin==='')continue;
+    const fN=(idx)=>{if(idx<0)return null;const v=parseFloat(cells[idx]);return isNaN(v)?null:v;};
+    parsed.push({
+      ims_pin:pin,
+      name:cols.name>=0?cells[cols.name]?.trim()||'':'',
+      total:fN(cols.total),
+      varc:fN(cols.varc),
+      dilr:fN(cols.dilr),
+      qa:fN(cols.qa),
+      percentile:fN(cols.percentile),
+    });
+  }
+
+  const valid=parsed.filter(r=>r.total!==null);
+  if(!valid.length){msg.textContent='⚠ No valid score rows found. Make sure you copied the full table including headers.';return;}
+
+  simcatData[n]=valid;
+  save();
+  msg.textContent=`✓ SIMCAT ${n}: ${valid.length} records loaded from paste.`;
+  msg.style.color='var(--green)';
+  const chip=document.getElementById('chip'+n);
+  if(chip)chip.className='s-chip loaded';
+  document.getElementById('pasteArea').value='';
+  setTimeout(()=>{
+    document.getElementById('pastePanel').style.display='none';
+    msg.style.color='var(--gray-400)';
+  },2000);
+}
+
+// ── SSB DATA ──────────────────────────────────────────────────────
+const SSB_DEFAULT = [
+  {name:'Harshil Vyas',   batch:'CAT 2639'},
+  {name:'Parth Suthar',   batch:'CAT 2639'},
+  {name:'Abhishek Giri',  batch:'CAT 2639'},
+  {name:'Meet Patel',     batch:'CAT 2639'},
+  {name:'Aarav Bhargava', batch:'CAT 2639'},
+  {name:'Atul Dad',       batch:'CAT 2639'},
+  {name:'Parth Chaturvedi',batch:'CAT 2639'},
+  {name:'Shreya Patel',   batch:'CAT 2639'},
+  {name:'Meet Chauhan',   batch:'CAT 2635'},
+];
+let ssbList   = JSON.parse(JSON.stringify(SSB_DEFAULT)); // will be overwritten by Sheets data on load
+let ssbAttend = {}; // {simcat: {name: true/false}}
+function saveSSB(){ apiPost({action:'saveSSB',list:ssbList,attend:ssbAttend}); }
+
+// ── PAGE: SSBs ────────────────────────────────────────────────────
+function ssb(el){
+  el.innerHTML=`
+  <div class="page-title">Student Success Buddies</div>
+  <div class="page-sub">Track SIMCAT attendance for SSBs — not in the HO report.</div>
+  <div class="controls-row">
+    <label>SIMCAT:</label>
+    <select id="ssbSC" onchange="renderSSB()">${Array.from({length:20},(_,i)=>`<option value="${i+1}">SIMCAT ${i+1}</option>`).join('')}</select>
+    ${currentUser==='ADMIN'?`<button class="btn btn-accent" onclick="downloadSSBAttendance()">⬇ Download image</button>`:''}
+  </div>
+  <div id="ssbMetrics" class="metric-grid" style="margin-bottom:1rem"></div>
+  <div id="ssbCapture">
+    <div class="card" id="ssbCard">
+      <div class="card-title">Mark attendance</div>
+      <div id="ssbTable"></div>
+    </div>
+  </div>
+  ${currentUser==='ADMIN'?`
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title">Manage SSB list</div>
+    <div class="controls-row">
+      <input type="text" id="ssbName" placeholder="Name" style="height:32px;padding:0 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;width:160px;outline:none">
+      <select id="ssbBatch" style="height:32px;padding:0 8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;outline:none">
+        ${[...new Set(ssbList.map(s=>s.batch)),...['CAT 2635','CAT 2639']].filter((v,i,a)=>a.indexOf(v)===i).sort().map(b=>`<option value="${b}">${b}</option>`).join('')}
+        <option value="other">Other…</option>
+      </select>
+      <button class="btn btn-brand" onclick="addSSB()">Add</button>
+    </div>
+    <div id="ssbManageTable" style="margin-top:.5rem"></div>
+  </div>`:''}`;
+  renderSSB();
+  if(currentUser==='ADMIN') renderSSBManage();
+}
+
+function renderSSB(){
+  const n=parseInt(document.getElementById('ssbSC')?.value)||1;
+  if(!ssbAttend[n]) ssbAttend[n]={};
+  const batches=[...new Set(ssbList.map(s=>s.batch))].sort();
+  const total=ssbList.length;
+  const given=ssbList.filter(s=>ssbAttend[n][s.name]).length;
+  const pending=total-given;
+
+  document.getElementById('ssbMetrics').innerHTML=`
+    <div class="metric brand"><div class="metric-label">Total SSBs</div><div class="metric-val">${total}</div></div>
+    <div class="metric green"><div class="metric-label">Attended</div><div class="metric-val">${given}</div></div>
+    <div class="metric ${pending>0?'red':'green'}"><div class="metric-label">Absent</div><div class="metric-val">${pending}</div></div>
+    <div class="metric"><div class="metric-label">Attendance</div><div class="metric-val">${total?(given/total*100).toFixed(1)+'%':'—'}</div></div>`;
+
+  let html='';
+  batches.forEach(batch=>{
+    const members=ssbList.filter(s=>s.batch===batch);
+    html+=`<div style="font-size:12px;font-weight:600;color:var(--brand);padding:8px 0 4px;border-bottom:1px solid var(--gray-100);margin-bottom:6px">${batch}</div>`;
+    members.forEach(s=>{
+      const checked=ssbAttend[n][s.name]?'checked':'';
+      const isAdmin=currentUser==='ADMIN';
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gray-100)">
+        <span style="font-size:13px;color:${ssbAttend[n][s.name]?'var(--green)':'var(--gray-800)'};font-weight:${ssbAttend[n][s.name]?'500':'400'}">${s.name}</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:${isAdmin?'pointer':'default'};font-size:12px;color:var(--gray-600)">
+          <input type="checkbox" ${checked} ${isAdmin?'':'disabled'} onchange="toggleSSB(${n},'${s.name.replace(/'/g,"\'")}',this.checked)" style="accent-color:var(--green);width:16px;height:16px;cursor:${isAdmin?'pointer':'default'}">
+          ${ssbAttend[n][s.name]?'<span class="tag tag-g">Present</span>':'<span class="tag tag-r">Absent</span>'}
+        </label>
+      </div>`;
+    });
+    html+='<div style="height:12px"></div>';
+  });
+  document.getElementById('ssbTable').innerHTML=html;
+}
+
+function toggleSSB(n, name, val){
+  if(!ssbAttend[n]) ssbAttend[n]={};
+  ssbAttend[n][name]=val;
+  saveSSB();
+  renderSSB();
+}
+
+function renderSSBManage(){
+  const tbl=document.getElementById('ssbManageTable');
+  if(!tbl)return;
+  let html='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--gray-400);font-weight:600;border-bottom:1px solid var(--gray-200)">Name</th><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--gray-400);font-weight:600;border-bottom:1px solid var(--gray-200)">Batch</th><th style="padding:6px 8px;border-bottom:1px solid var(--gray-200)"></th></tr></thead><tbody>';
+  ssbList.forEach((s,i)=>{
+    html+=`<tr><td style="padding:6px 8px">${s.name}</td><td style="padding:6px 8px;color:var(--gray-400)">${s.batch}</td><td style="padding:6px 8px;text-align:right"><button class="btn" style="font-size:11px;height:26px;padding:0 8px;color:var(--red);border-color:var(--red)" onclick="removeSSB(${i})">Remove</button></td></tr>`;
+  });
+  html+='</tbody></table>';
+  tbl.innerHTML=html;
+}
+
+function addSSB(){
+  const name=document.getElementById('ssbName').value.trim();
+  let batch=document.getElementById('ssbBatch').value;
+  if(batch==='other') batch=prompt('Enter batch name:')||'';
+  if(!name||!batch){alert('Please enter both name and batch.');return;}
+  ssbList.push({name,batch});
+  saveSSB();
+  document.getElementById('ssbName').value='';
+  renderSSB();
+  renderSSBManage();
+}
+
+function removeSSB(i){
+  if(!confirm('Remove '+ssbList[i].name+'?'))return;
+  ssbList.splice(i,1);
+  saveSSB();
+  renderSSB();
+  renderSSBManage();
+}
+
+function downloadSSBAttendance(){
+  const el=document.getElementById('ssbCapture');
+  if(!el)return;
+  const n=parseInt(document.getElementById('ssbSC')?.value)||1;
+  html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(canvas=>{
+    const a=document.createElement('a');
+    a.download=`SSB_Attendance_SIMCAT${n}_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}.png`;
+    a.href=canvas.toDataURL('image/png');a.click();
+  });
+}
+
+function saveLocal(){
+  try{
+    localStorage.setItem('ims_simcat', JSON.stringify(simcatData));
+    localStorage.setItem('ims_batchlists', JSON.stringify(batchLists));
+    localStorage.setItem('ims_ssb_list', JSON.stringify(ssbList));
+    localStorage.setItem('ims_ssb_attend', JSON.stringify(ssbAttend));
+  }catch(e){ console.warn('localStorage save failed:', e.message); }
+}
+</script>
+</body>
+</html>
