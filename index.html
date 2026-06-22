@@ -494,7 +494,7 @@ async function doSync(){
   if(!apiUrl){msg.textContent='Paste the Apps Script URL above and click Save first.';return;}
   msg.textContent='Syncing…';
   try{
-    const m=await gasCall('master');
+    const m=await apiGet({action:'master'});
     if(m&&m.rows){
       masterData=m.rows;
       localStorage.setItem('ims_master',JSON.stringify(masterData));
