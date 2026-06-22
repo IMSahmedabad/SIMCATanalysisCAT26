@@ -215,40 +215,24 @@ let masterMeta={};
 // No local storage needed - all data via google.script.run
 function save(){ }
 
-// ── API HELPERS (google.script.run — works on ALL devices, no CORS) ──
-function gsRun(fnName, arg){
-  return new Promise((resolve,reject)=>{
-    if(typeof google === 'undefined' || !google.script || !google.script.run){
-      reject(new Error('google.script.run not available - make sure app is served from Apps Script URL'));
-      return;
-    }
-    const runner = google.script.run
-      .withSuccessHandler(resolve)
-      .withFailureHandler(function(e){ reject(e); });
-    if(arg !== null && arg !== undefined) runner[fnName](arg);
-    else runner[fnName]();
+// ── API HELPERS (JSONP — works on all browsers, no CORS) ─────────
+function apiGet(params){
+  return new Promise(function(resolve, reject){
+    if(!apiUrl){ reject(new Error('No API URL')); return; }
+    var cb='cb_'+Date.now()+'_'+Math.floor(Math.random()*9999);
+    var qs='action='+encodeURIComponent(params.action||'ping');
+    if(params.n!==undefined) qs+='&n='+params.n;
+    qs+='&callback='+cb;
+    var script=document.createElement('script');
+    var done=false;
+    window[cb]=function(data){ done=true; delete window[cb]; script.remove(); resolve(data); };
+    script.onerror=function(){ if(!done){ done=true; delete window[cb]; reject(new Error('JSONP failed')); } };
+    script.src=apiUrl+'?'+qs;
+    document.head.appendChild(script);
+    setTimeout(function(){ if(!done){ done=true; delete window[cb]; script.remove(); reject(new Error('Timeout')); } },15000);
   });
 }
 
-async function apiGet(params){
-  const action=params.action;
-  try{
-    if(action==='master')        return await gsRun('getMasterDataClient', null);
-    if(action==='getSimcat')     return await gsRun('getSimcatDataClient', parseInt(params.n));
-    if(action==='getSSB')        return await gsRun('getSSBDataClient', null);
-    if(action==='getBatchLists') return await gsRun('getBatchListsClient', null);
-  }catch(e){ console.error('apiGet error:',e.message||e); return null; }
-}
-
-async function apiPost(body){
-  const action=body.action;
-  try{
-    if(action==='saveSimcat')     return await gsRun('saveSimcatDataClient',    {n:body.n,rows:body.rows});
-    if(action==='deleteSimcat')   return await gsRun('deleteSimcatSheetClient', body.n);
-    if(action==='saveSSB')        return await gsRun('saveSSBDataClient',       {list:body.list,attend:body.attend});
-    if(action==='saveBatchLists') return await gsRun('saveBatchListsClient',    body.lists);
-  }catch(e){ console.error('apiPost',e); return null; }
-}
 
 // ── LOAD ALL DATA ON LOGIN ─────────────────────────────────────────
 async function loadAllData(){
